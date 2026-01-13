@@ -1,0 +1,7 @@
+{
+  "name": "Helpfulat",
+  "description": "A sophisticated AI assistant with deep search capabilities, powered by Gemini 3 Pro and Google Search grounding for real-time, accurate information.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
