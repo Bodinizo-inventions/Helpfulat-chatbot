@@ -5,8 +5,7 @@
   "description": "Helpfulat AI Assistant",
   "type": "module",
   "scripts": {
-    "start": "serve .",
-    "build": "echo 'No build step required for ESM-native app'"
+    "start": "serve ."
   },
   "dependencies": {
     "serve": "^14.2.4"
