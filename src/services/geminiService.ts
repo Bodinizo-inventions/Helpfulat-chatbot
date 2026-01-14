@@ -11,7 +11,7 @@ const genAI = new GoogleGenerativeAI(apiKey || '');
 export async function generateResponse(messages: Array<{ role: string; content: string }>, deepSearch: boolean) {
   try {
     const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-pro',
+      model: 'gemini-2.5-flash-lite',
       systemInstruction: `Identity: Helpfulat Assistant. Creator: Bodinizo. Deep Search: ${deepSearch}.`,
     });
 
