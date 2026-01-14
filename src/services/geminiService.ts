@@ -19,7 +19,7 @@ export async function generateResponse(
   userInterests: string[] = []
 ) {
   // Try with primary model first, fallback to secondary if quota exceeded
-  const models = ['gemini-2.5-flash-lite', 'gemini-2.0-flash'];
+  const models = ['gemini-2.5-flash-lite', 'gemini-2.0-flash-exp'];
   let lastError: any = null;
   
   for (const modelName of models) {
@@ -42,6 +42,15 @@ export async function generateResponse(
         if (modelName === models[0]) {
           console.warn(`Quota exceeded for ${modelName}, switching to ${models[1]}`);
           // Store the fact that we switched models
+          localStorage.setItem('helpfulat_model_fallback', 'true');
+          continue; // Try the next model
+        }
+      }
+      
+      // If it's a 404 model not found error and we have a fallback, try the next one
+      if (error?.message?.includes('404') || error?.message?.includes('not found') || error?.message?.includes('not supported')) {
+        if (modelName === models[0]) {
+          console.warn(`Model ${modelName} not available, switching to ${models[1]}`);
           localStorage.setItem('helpfulat_model_fallback', 'true');
           continue; // Try the next model
         }
