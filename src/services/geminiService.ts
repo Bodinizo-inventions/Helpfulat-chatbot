@@ -18,12 +18,15 @@ export async function generateResponse(
   userName: string = 'User',
   userInterests: string[] = []
 ) {
-  // Try with primary model first, fallback to secondary if quota exceeded
-  const models = ['gemini-2.5-pro', 'gemini-1.5-pro'];
+  // Try with primary model first, fallback to secondary, then tertiary if quota exceeded
+  // These are all officially supported models according to Google Generative AI API docs
+  const models = ['gemini-2.5-flash-lite', 'gemini-2.0-flash', 'gemini-1.5-pro'];
   let lastError: any = null;
   
-  for (const modelName of models) {
+  for (let i = 0; i < models.length; i++) {
+    const modelName = models[i];
     try {
+      console.log(`Attempting to use model: ${modelName}`);
       return await generateWithModel(
         modelName,
         messages,
@@ -36,27 +39,23 @@ export async function generateResponse(
       );
     } catch (error: any) {
       lastError = error;
+      console.error(`Error with ${modelName}:`, error?.message);
       
       // If it's a quota error and we have a fallback model, try the next one
-      if (error?.message?.includes('429') || error?.message?.includes('quota') || error?.message?.includes('exceeded')) {
-        if (modelName === models[0]) {
-          console.warn(`Quota exceeded for ${modelName}, switching to ${models[1]}`);
-          // Store the fact that we switched models
-          localStorage.setItem('helpfulat_model_fallback', 'true');
-          continue; // Try the next model
-        }
+      if ((error?.message?.includes('429') || error?.message?.includes('quota') || error?.message?.includes('exceeded')) && i < models.length - 1) {
+        console.warn(`Quota exceeded for ${modelName}, switching to ${models[i + 1]}`);
+        localStorage.setItem('helpfulat_model_fallback', 'true');
+        continue; // Try the next model
       }
       
       // If it's a 404 model not found error and we have a fallback, try the next one
-      if (error?.message?.includes('404') || error?.message?.includes('not found') || error?.message?.includes('not supported')) {
-        if (modelName === models[0]) {
-          console.warn(`Model ${modelName} not available, switching to ${models[1]}`);
-          localStorage.setItem('helpfulat_model_fallback', 'true');
-          continue; // Try the next model
-        }
+      if ((error?.message?.includes('404') || error?.message?.includes('not found') || error?.message?.includes('not supported')) && i < models.length - 1) {
+        console.warn(`Model ${modelName} not available, switching to ${models[i + 1]}`);
+        localStorage.setItem('helpfulat_model_fallback', 'true');
+        continue; // Try the next model
       }
       
-      // If this is the last model or not a quota error, throw
+      // If this is the last model or a different error, throw
       throw error;
     }
   }
