@@ -1,6 +1,6 @@
 
 import React from 'react';
-// Fixed import path to use .js extension
+// Fixed import path to use the existing types.js file
 import { Message, Role } from '../types.js';
 
 interface ChatMessageProps {

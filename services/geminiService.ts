@@ -1,8 +1,9 @@
 
 import { GoogleGenAI } from "@google/genai";
-// Fixed import path to use .js extension
+// Fixed import path to use the existing types.js as types.ts was replaced
 import { Role } from "../types.js";
 
+// Use recommended model for complex tasks
 const MODEL_NAME = 'gemini-3-pro-preview';
 const OWNER_EMAIL = 'bodinizo2017@gmail.com';
 
@@ -19,15 +20,16 @@ export async function sendMessage(
 ): Promise<{ text: string; sources: any[] }> {
   console.log("%c [API] ", "background: #f59e0b; color: white", "Sending prompt to Gemini...", { isDeepSearch, personality });
   
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+  // Correct initialization using named parameter and process.env.API_KEY
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   const contents = history.map(msg => ({
-    role: msg.role === Role.USER ? 'user' : 'model',
+    role: msg.role === Role.USER ? 'user' : 'model' as const,
     parts: [{ text: msg.content }]
   }));
 
   contents.push({
-    role: 'user',
+    role: 'user' as const,
     parts: [{ text: prompt }]
   });
 
@@ -57,6 +59,7 @@ export async function sendMessage(
 
     console.log("%c [API] ", "background: #10b981; color: white", "Response received.");
     
+    // Using property access as per guidelines (response.text is a getter)
     const text = response.text || "No response text.";
     const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
 
