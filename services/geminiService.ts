@@ -1,6 +1,7 @@
 
 import { GoogleGenAI } from "@google/genai";
-import { Role } from "../types.ts";
+// Fixed import path to use .js extension
+import { Role } from "../types.js";
 
 const MODEL_NAME = 'gemini-3-pro-preview';
 const OWNER_EMAIL = 'bodinizo2017@gmail.com';

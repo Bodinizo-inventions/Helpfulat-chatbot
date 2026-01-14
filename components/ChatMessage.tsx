@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { Message, Role } from '../types';
+// Fixed import path to use .js extension
+import { Message, Role } from '../types.js';
 
 interface ChatMessageProps {
   message: Message;
