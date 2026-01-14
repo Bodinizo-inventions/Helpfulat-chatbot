@@ -18,9 +18,56 @@ export async function generateResponse(
   userName: string = 'User',
   userInterests: string[] = []
 ) {
+  // Try with primary model first, fallback to secondary if quota exceeded
+  const models = ['gemini-2.5-flash-lite', 'gemini-1.5-flash'];
+  let lastError: any = null;
+  
+  for (const modelName of models) {
+    try {
+      return await generateWithModel(
+        modelName,
+        messages,
+        deepSearch,
+        personality,
+        codeMode,
+        studyMode,
+        userName,
+        userInterests
+      );
+    } catch (error: any) {
+      lastError = error;
+      
+      // If it's a quota error and we have a fallback model, try the next one
+      if (error?.message?.includes('429') || error?.message?.includes('quota') || error?.message?.includes('exceeded')) {
+        if (modelName === models[0]) {
+          console.warn(`Quota exceeded for ${modelName}, switching to ${models[1]}`);
+          // Store the fact that we switched models
+          localStorage.setItem('helpfulat_model_fallback', 'true');
+          continue; // Try the next model
+        }
+      }
+      
+      // If this is the last model or not a quota error, throw
+      throw error;
+    }
+  }
+  
+  throw lastError;
+}
+
+async function generateWithModel(
+  modelName: string,
+  messages: Array<{ role: string; content: string }>,
+  deepSearch: boolean,
+  personality: 'tutor' | 'programmer' | 'thinker' | 'chill' | 'storyteller',
+  codeMode: boolean,
+  studyMode: boolean,
+  userName: string,
+  userInterests: string[]
+) {
   try {
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash-lite',
+      model: modelName,
     });
 
     let modeInstruction = '';
@@ -112,19 +159,7 @@ Remember the user's name is ${userName} and use it naturally in conversation. Re
       sources: sources,
     };
   } catch (error: any) {
-    console.error('Error generating response:', error);
-    
-    // Check for quota exceeded error (429)
-    if (error?.message?.includes('429') || error?.message?.includes('quota') || error?.message?.includes('exceeded')) {
-      throw new Error(
-        '⚠️ API Quota Exceeded\n\nYou\'ve reached the daily limit for the Gemini API free tier (20 requests/day).\n\n' +
-        'Options:\n' +
-        '1. Wait a few hours for the quota to reset\n' +
-        '2. Set up a paid billing account at https://aistudio.google.com for unlimited requests\n' +
-        '3. Come back tomorrow when the quota resets'
-      );
-    }
-    
+    console.error(`Error generating response with ${modelName}:`, error);
     throw error;
   }
 }

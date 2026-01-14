@@ -58,6 +58,7 @@ export const App: React.FC = () => {
   const [newUserName, setNewUserName] = useState('');
   const [showEditName, setShowEditName] = useState(false);
   const [memoryStats, setMemoryStats] = useState<any>(null);
+  const [modelFallback, setModelFallback] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const isRTL = lang === 'AR';
@@ -70,6 +71,10 @@ export const App: React.FC = () => {
     setUserName(profile.name);
     setNewUserName(profile.name);
     setMemoryStats(getMemoryStats());
+    
+    // Check if we're using fallback model
+    const isFallback = localStorage.getItem('helpfulat_model_fallback') === 'true';
+    setModelFallback(isFallback);
   }, []);
 
   const createNewSession = useCallback(() => {
@@ -285,6 +290,11 @@ export const App: React.FC = () => {
               <span className="text-2xl font-black text-emerald-900">
                 Type: <span className="text-3xl">{personalityInfo.emoji}</span> {personalityInfo.name}
               </span>
+              {modelFallback && (
+                <span className="px-3 py-1 rounded-full bg-yellow-400 text-yellow-900 text-xs font-black animate-pulse">
+                  📉 Using Lite Model
+                </span>
+              )}
             </div>
           </div>
 
