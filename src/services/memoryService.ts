@@ -64,8 +64,13 @@ export function addInterest(interest: string): void {
 
 // Get session summaries (past sessions for context)
 export function getSessionSummaries(): SessionSummary[] {
-  const stored = localStorage.getItem(STORAGE_KEYS.SESSION_SUMMARIES);
-  return stored ? JSON.parse(stored) : [];
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.SESSION_SUMMARIES);
+    return stored ? JSON.parse(stored) : [];
+  } catch (error) {
+    console.error('Error loading session summaries:', error);
+    return [];
+  }
 }
 
 // Save session summary after it ends
@@ -110,23 +115,30 @@ export function saveSessionSummary(
 
 // Build context string for the AI to understand user memory
 export function buildMemoryContext(userName: string, interests: string[], recentSessions: SessionSummary[]): string {
-  let context = `User Information:\n`;
-  context += `- Name: ${userName}\n`;
+  try {
+    let context = `User Information:\n`;
+    context += `- Name: ${userName || 'User'}\n`;
 
-  if (interests.length > 0) {
-    context += `- Interests: ${interests.join(', ')}\n`;
+    if (interests && interests.length > 0) {
+      context += `- Interests: ${interests.join(', ')}\n`;
+    }
+
+    if (recentSessions && recentSessions.length > 0) {
+      context += `\nRecent Conversation History:\n`;
+      recentSessions.slice(-3).forEach((session) => {
+        if (session && session.date && session.title && session.topics && session.summary) {
+          context += `- ${new Date(session.date).toLocaleDateString()}: ${session.title}\n`;
+          context += `  Topics: ${session.topics.join(', ')}\n`;
+          context += `  Summary: ${session.summary}\n`;
+        }
+      });
+    }
+
+    return context;
+  } catch (error) {
+    console.error('Error building memory context:', error);
+    return `User Information:\n- Name: ${userName || 'User'}\n`;
   }
-
-  if (recentSessions.length > 0) {
-    context += `\nRecent Conversation History:\n`;
-    recentSessions.slice(-3).forEach((session) => {
-      context += `- ${new Date(session.date).toLocaleDateString()}: ${session.title}\n`;
-      context += `  Topics: ${session.topics.join(', ')}\n`;
-      context += `  Summary: ${session.summary}\n`;
-    });
-  }
-
-  return context;
 }
 
 // Helper: Generate session summary from messages

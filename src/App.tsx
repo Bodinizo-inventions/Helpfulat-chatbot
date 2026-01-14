@@ -93,15 +93,16 @@ export const App: React.FC = () => {
   // Save session summary when switching sessions
   useEffect(() => {
     if (currentSession && currentSession.messages.length > 0) {
-      const unsubscribe = () => {
+      try {
         saveSessionSummary(
           currentSession.id,
           currentSession.messages[0]?.content?.substring(0, 50) || 'Chat',
           personality,
           currentSession.messages
         );
-      };
-      return unsubscribe;
+      } catch (error) {
+        console.error('Error saving session summary:', error);
+      }
     }
   }, [currentSessionId, personality]);
 
@@ -141,7 +142,7 @@ export const App: React.FC = () => {
         personality,
         codeMode,
         studyMode,
-        userName,
+        userName || 'User',
         [] // user interests can be expanded
       );
 
