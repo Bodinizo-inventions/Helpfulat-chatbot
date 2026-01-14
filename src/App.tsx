@@ -19,8 +19,22 @@ interface Session {
   messages: Message[];
 }
 
-type Mode = 'normal' | 'study' | 'code';
-type Personality = 'chill' | 'thinker';
+type PersonalityType = 'tutor' | 'programmer' | 'thinker' | 'chill' | 'storyteller';
+
+const PERSONALITIES: Record<PersonalityType, { emoji: string; name: string; color: string }> = {
+  tutor: { emoji: '👨‍🏫', name: 'Tutor', color: 'from-blue-500 to-blue-600' },
+  programmer: { emoji: '💻', name: 'Programmer', color: 'from-purple-500 to-purple-600' },
+  thinker: { emoji: '🧠', name: 'Thinker', color: 'from-indigo-500 to-indigo-600' },
+  chill: { emoji: '😎', name: 'Chill', color: 'from-green-500 to-green-600' },
+  storyteller: { emoji: '📖', name: 'Storyteller', color: 'from-pink-500 to-pink-600' },
+};
+
+const COURSES = [
+  { id: 'english', title: 'English Book', icon: '📖', desc: 'Grammar, Vocabulary & Writing' },
+  { id: 'math', title: 'Math Book', icon: '📐', desc: 'Arithmetic, Algebra & Geometry' },
+  { id: 'science', title: 'Science Book', icon: '🧪', desc: 'Biology, Chemistry & Physics' },
+  { id: 'discover', title: 'Discover Book', icon: '🌍', desc: 'History, Geography & Civics' },
+];
 
 export const App: React.FC = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -29,13 +43,16 @@ export const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isDeepSearch, setIsDeepSearch] = useState(true);
   const [lang, setLang] = useState('EN');
-  const [activeTab, setActiveTab] = useState<'chat' | 'arcade'>('chat');
-  const [mode, setMode] = useState<Mode>('normal');
-  const [personality, setPersonality] = useState<Personality>('chill');
+  const [activeTab, setActiveTab] = useState<'chat' | 'study' | 'arcade'>('chat');
+  const [personality, setPersonality] = useState<PersonalityType>('tutor');
+  const [codeMode, setCodeMode] = useState(false);
+  const [studyMode, setStudyMode] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const isRTL = lang === 'AR';
   const currentSession = sessions.find((s) => s.id === currentSessionId);
+  const personalityInfo = PERSONALITIES[personality];
 
   const createNewSession = useCallback(() => {
     const id = uuidv4();
@@ -88,8 +105,9 @@ export const App: React.FC = () => {
       const response = await generateResponse(
         [...history, { role: Role.USER, content: userMsg.content }],
         isDeepSearch,
-        mode,
-        personality
+        personality,
+        codeMode,
+        studyMode
       );
 
       setSessions((prev) =>
@@ -127,6 +145,7 @@ export const App: React.FC = () => {
 
   return (
     <div className={`flex h-screen overflow-hidden ${isRTL ? 'flex-row-reverse' : 'flex-row'}`} dir={isRTL ? 'rtl' : 'ltr'}>
+      {/* Sidebar */}
       <aside className="w-72 bg-white/60 backdrop-blur-xl border-r-4 border-white flex flex-col hidden lg:flex">
         <div className="p-6">
           <h1 className="text-3xl font-black text-emerald-900 mb-6 flex items-center gap-2">
@@ -134,11 +153,30 @@ export const App: React.FC = () => {
           </h1>
           <button
             onClick={createNewSession}
-            className="w-full py-4 font-black text-emerald-700 bg-white border-b-8 border-emerald-100 rounded-2xl shadow-sm hover:translate-y-1 transition-all"
+            className="w-full py-4 font-black text-white bg-gradient-to-r from-emerald-500 to-emerald-600 border-b-4 border-emerald-700 rounded-2xl shadow-sm hover:translate-y-1 transition-all"
           >
-            + New Chat
+            ➕ New Chat
           </button>
         </div>
+
+        {/* Study Room Button */}
+        <div className="px-4 pb-4">
+          <button
+            onClick={() => {
+              setSelectedCourse(null);
+              setActiveTab('study');
+            }}
+            className={`w-full py-4 font-black rounded-2xl transition-all ${
+              activeTab === 'study'
+                ? 'bg-blue-500 text-white shadow-lg border-b-4 border-blue-600'
+                : 'bg-white/80 text-blue-600 hover:bg-blue-50 border-b-4 border-blue-100'
+            }`}
+          >
+            📚 Study Room
+          </button>
+        </div>
+
+        {/* Sessions List */}
         <div className="flex-1 overflow-y-auto px-4 space-y-2 custom-scrollbar">
           {sessions.map((s) => (
             <button
@@ -153,10 +191,17 @@ export const App: React.FC = () => {
                   : 'hover:bg-white/80 text-emerald-900'
               }`}
             >
-              {s.messages.length > 0 ? s.messages[0].content : s.title}
+              {s.messages.length > 0 ? s.messages[0].content.substring(0, 30) : s.title}
             </button>
           ))}
         </div>
+
+        {/* Recent History Header */}
+        <div className="px-4 py-3 text-xs font-black text-gray-500 uppercase tracking-widest">
+          {lang === 'EN' ? 'Recent History' : 'السجل الأخير'}
+        </div>
+
+        {/* Arcade Button */}
         <div className="p-4 border-t-4 border-white/50">
           <button
             onClick={() => setActiveTab('arcade')}
@@ -167,97 +212,153 @@ export const App: React.FC = () => {
         </div>
       </aside>
 
+      {/* Main Content */}
       <main className="flex-1 flex flex-col bg-white/30 backdrop-blur-sm relative">
-        <header className="border-b-4 border-white flex flex-col gap-2 px-8 py-3 bg-white/20">
-          <div className="flex items-center justify-between">
-            <div className="lg:hidden text-2xl font-black text-emerald-900">Helpfulat</div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsDeepSearch(!isDeepSearch)}
-                className={`px-3 py-1 rounded-lg text-[10px] font-black transition-all ${
-                  isDeepSearch ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-500'
-                }`}
-              >
-                DEEP SEARCH
-              </button>
-              <button
-                onClick={() => setLang(lang === 'EN' ? 'AR' : 'EN')}
-                className="w-9 h-9 rounded-lg bg-white border-2 border-white flex items-center justify-center font-black text-xs"
-              >
-                {lang === 'EN' ? 'AR' : 'EN'}
-              </button>
+        {/* Header */}
+        <header className="border-b-4 border-white px-8 py-4 bg-white/20">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <div className="lg:hidden text-2xl font-black text-emerald-900">Helpfulat</div>
+              <span className="hidden md:inline px-3 py-1 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-xs font-black">
+                OWNER
+              </span>
+              <span className="text-2xl font-black text-emerald-900">
+                Type: <span className="text-3xl">{personalityInfo.emoji}</span> {personalityInfo.name}
+              </span>
             </div>
           </div>
-          
-          {/* Mode and Personality Controls */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex gap-1">
-              <button
-                onClick={() => setMode('normal')}
-                className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${
-                  mode === 'normal' ? 'bg-blue-500 text-white' : 'bg-white/40 text-gray-700 hover:bg-white/60'
-                }`}
-              >
-                Normal
-              </button>
-              <button
-                onClick={() => setMode('study')}
-                className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${
-                  mode === 'study' ? 'bg-orange-500 text-white' : 'bg-white/40 text-gray-700 hover:bg-white/60'
-                }`}
-              >
-                📚 Study
-              </button>
-              <button
-                onClick={() => setMode('code')}
-                className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${
-                  mode === 'code' ? 'bg-purple-500 text-white' : 'bg-white/40 text-gray-700 hover:bg-white/60'
-                }`}
-              >
-                💻 Code
-              </button>
-            </div>
-            
-            <div className="flex gap-1">
-              <button
-                onClick={() => setPersonality('chill')}
-                className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${
-                  personality === 'chill' ? 'bg-green-500 text-white' : 'bg-white/40 text-gray-700 hover:bg-white/60'
-                }`}
-              >
-                😎 Chill
-              </button>
-              <button
-                onClick={() => setPersonality('thinker')}
-                className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${
-                  personality === 'thinker' ? 'bg-indigo-500 text-white' : 'bg-white/40 text-gray-700 hover:bg-white/60'
-                }`}
-              >
-                🧠 Thinker
-              </button>
-            </div>
+
+          {/* Controls Row 1: Personality Selector */}
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <select
+              value={personality}
+              onChange={(e) => setPersonality(e.target.value as PersonalityType)}
+              className="px-4 py-2 rounded-lg bg-white border-2 border-gray-200 font-bold text-sm cursor-pointer hover:border-gray-300"
+            >
+              {Object.entries(PERSONALITIES).map(([key, { emoji, name }]) => (
+                <option key={key} value={key}>
+                  {emoji} {name}
+                </option>
+              ))}
+            </select>
+
+            <button
+              onClick={() => setLang(lang === 'EN' ? 'AR' : 'EN')}
+              className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                lang === 'EN'
+                  ? 'bg-white text-emerald-600 border-2 border-emerald-500'
+                  : 'bg-emerald-500 text-white border-2 border-emerald-600'
+              }`}
+            >
+              {lang === 'EN' ? 'English' : 'العربية'}
+            </button>
+
+            <button
+              onClick={() => setIsDeepSearch(!isDeepSearch)}
+              className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                isDeepSearch
+                  ? 'bg-emerald-500 text-white border-2 border-emerald-600'
+                  : 'bg-white/60 text-gray-700 border-2 border-gray-300'
+              }`}
+            >
+              Deep {isDeepSearch ? 'ON' : 'OFF'}
+            </button>
+          </div>
+
+          {/* Controls Row 2: Code & Study Modes */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCodeMode(!codeMode)}
+              className={`px-4 py-1.5 rounded-lg font-bold text-sm transition-all ${
+                codeMode
+                  ? 'bg-purple-500 text-white border-2 border-purple-600'
+                  : 'bg-white/60 text-gray-700 border-2 border-gray-300'
+              }`}
+            >
+              CODE: {codeMode ? 'ON' : 'OFF'}
+            </button>
+
+            <button
+              onClick={() => setStudyMode(!studyMode)}
+              className={`px-4 py-1.5 rounded-lg font-bold text-sm transition-all ${
+                studyMode
+                  ? 'bg-orange-500 text-white border-2 border-orange-600'
+                  : 'bg-white/60 text-gray-700 border-2 border-gray-300'
+              }`}
+            >
+              STUDY: {studyMode ? 'ON' : 'OFF'}
+            </button>
           </div>
         </header>
 
+        {/* Content Area */}
         <div className="flex-1 overflow-y-auto custom-scrollbar">
           {activeTab === 'chat' ? (
             <div className="pb-32">
               {currentSession?.messages.length === 0 ? (
                 <div className="mt-32 text-center px-6">
-                  <div className="text-8xl mb-6 animate-bounce">👋</div>
-                  <h2 className="text-4xl font-black text-emerald-900 mb-2">Helpfulat</h2>
-                  <p className="text-emerald-800/60 font-bold">Deep search assistant at your service.</p>
+                  <div className="text-8xl mb-6 animate-bounce">{personalityInfo.emoji}</div>
+                  <h2 className="text-4xl font-black text-emerald-900 mb-2">
+                    {lang === 'EN' ? "Let's learn!" : 'دعونا نتعلم!'}
+                  </h2>
+                  <p className="text-emerald-700 font-bold">
+                    {lang === 'EN'
+                      ? `Active Personality: ${personalityInfo.name}`
+                      : `الشخصية النشطة: ${personalityInfo.name}`}
+                  </p>
                 </div>
               ) : (
                 currentSession?.messages.map((m) => <ChatMessage key={m.id} message={m} />)
               )}
               <div ref={messagesEndRef} />
             </div>
+          ) : activeTab === 'study' ? (
+            <div className="p-12">
+              {!selectedCourse ? (
+                <div className="max-w-5xl mx-auto">
+                  <h2 className="text-4xl font-black text-center text-gray-800 mb-4">
+                    {lang === 'EN' ? 'Digital Library' : 'المكتبة الرقمية'}
+                  </h2>
+                  <p className="text-center text-gray-600 font-bold mb-12">
+                    {lang === 'EN'
+                      ? 'Select a course book to begin studying.'
+                      : 'اختر كتاب دورة لبدء الدراسة.'}
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {COURSES.map((course) => (
+                      <button
+                        key={course.id}
+                        onClick={() => setSelectedCourse(course.id)}
+                        className="bg-white/80 hover:bg-white backdrop-blur rounded-3xl p-8 shadow-lg hover:shadow-xl transition-all text-left group"
+                      >
+                        <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">{course.icon}</div>
+                        <h3 className="text-2xl font-black text-gray-900 mb-2">{course.title}</h3>
+                        <p className="text-gray-600 font-bold">{course.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <button
+                    onClick={() => setSelectedCourse(null)}
+                    className="mb-6 px-6 py-2 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600"
+                  >
+                    ← {lang === 'EN' ? 'Back to Library' : 'العودة إلى المكتبة'}
+                  </button>
+                  <p className="text-xl text-gray-700 font-bold">
+                    {lang === 'EN' ? 'Selected:' : 'المحدد:'} {COURSES.find((c) => c.id === selectedCourse)?.title}
+                  </p>
+                </div>
+              )}
+            </div>
           ) : (
             <Arcade />
           )}
         </div>
 
+        {/* Input Area */}
         {activeTab === 'chat' && (
           <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-sky-200/80 to-transparent">
             <form
@@ -267,7 +368,7 @@ export const App: React.FC = () => {
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Search for anything..."
+                placeholder={lang === 'EN' ? 'Message Helpfulat (' + personalityInfo.name + ')...' : 'رسالة إلى Helpfulat...'}
                 className="flex-1 bg-transparent border-none focus:ring-0 font-bold py-4 text-gray-700 text-lg"
               />
               <button

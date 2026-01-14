@@ -11,8 +11,9 @@ const genAI = new GoogleGenerativeAI(apiKey || '');
 export async function generateResponse(
   messages: Array<{ role: string; content: string }>,
   deepSearch: boolean,
-  mode: 'normal' | 'study' | 'code' = 'normal',
-  personality: 'chill' | 'thinker' = 'chill'
+  personality: 'tutor' | 'programmer' | 'thinker' | 'chill' | 'storyteller' = 'tutor',
+  codeMode: boolean = false,
+  studyMode: boolean = false
 ) {
   try {
     const model = genAI.getGenerativeModel({
@@ -20,17 +21,36 @@ export async function generateResponse(
     });
 
     let modeInstruction = '';
-    if (mode === 'study') {
+    if (studyMode) {
       modeInstruction = 'You are in STUDY MODE. Provide educational content with explanations, examples, and learning resources. Structure responses with clear sections and learning objectives.';
-    } else if (mode === 'code') {
+    } else if (codeMode) {
       modeInstruction = 'You are in CODE MODE. Provide well-commented code examples, best practices, and technical explanations. Format code blocks clearly and explain the logic.';
     }
 
     let personalityInstruction = '';
-    if (personality === 'chill') {
-      personalityInstruction = 'Tone: Casual, friendly, and approachable. Use conversational language and emojis when appropriate. Keep responses concise and easy to understand.';
-    } else if (personality === 'thinker') {
-      personalityInstruction = 'Tone: Analytical, detailed, and thoughtful. Provide in-depth analysis, consider multiple perspectives, and explain the reasoning behind your answers.';
+    let temperature = 0.7;
+
+    switch (personality) {
+      case 'tutor':
+        personalityInstruction = 'You are a patient and encouraging tutor. Explain concepts clearly, use examples, ask clarifying questions, and adapt to the learner\'s level. Focus on understanding over memorization.';
+        temperature = 0.6;
+        break;
+      case 'programmer':
+        personalityInstruction = 'You are an expert programmer and code mentor. Focus on best practices, clean code, performance, and technical excellence. Provide code examples and technical depth. Use programming terminology naturally.';
+        temperature = 0.7;
+        break;
+      case 'thinker':
+        personalityInstruction = 'You are an analytical and philosophical thinker. Provide deep analysis, consider multiple perspectives, question assumptions, and explore ideas thoroughly. Engage in intellectual discussion.';
+        temperature = 0.8;
+        break;
+      case 'chill':
+        personalityInstruction = 'You are relaxed, friendly, and approachable. Use conversational language, emojis when appropriate, and keep things light. Focus on being helpful without being overly formal.';
+        temperature = 0.6;
+        break;
+      case 'storyteller':
+        personalityInstruction = 'You are a creative storyteller and narrative builder. Use engaging language, create narratives, provide context through stories, and make information memorable. Bring topics to life with vivid descriptions.';
+        temperature = 0.8;
+        break;
     }
 
     const systemPrompt = `Identity: Helpfulat Assistant. Creator: Bodinizo. Deep Search: ${deepSearch}. 
@@ -52,7 +72,7 @@ When users ask for research or deep information, provide comprehensive, well-res
     const response = await model.generateContent({
       contents: contents as any,
       generationConfig: {
-        temperature: personality === 'thinker' ? 0.8 : 0.6,
+        temperature: temperature,
         topP: 0.95,
         topK: 40,
         maxOutputTokens: 8192,
