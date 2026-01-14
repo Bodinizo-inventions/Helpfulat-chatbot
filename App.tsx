@@ -1,10 +1,10 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { Role, Message, ChatSession } from './types';
-import { sendMessage } from './services/geminiService';
-import ChatMessage from './components/ChatMessage';
-import Arcade from './components/Arcade';
+import { Role, Message, ChatSession } from './types.ts';
+import { sendMessage } from './services/geminiService.ts';
+import ChatMessage from './components/ChatMessage.tsx';
+import Arcade from './components/Arcade.tsx';
 
 type AppTab = 'chat' | 'arcade' | 'study';
 type Language = 'EN' | 'AR';
@@ -42,11 +42,11 @@ const App: React.FC = () => {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isDeepSearch, setIsDeepSearch] = useState(false);
+  const [isDeepSearch, setIsDeepSearch] = useState(true); // Default to Deep Search enabled
   const [isStudyMode, setIsStudyMode] = useState(false);
   const [isCodingMode, setIsCodingMode] = useState(false);
   const [lang, setLang] = useState<Language>('EN');
-  const [personality, setPersonality] = useState<Personality>('Tutor');
+  const [personality, setPersonality] = useState<Personality>('Thinker');
   const [selectedBook, setSelectedBook] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<AppTab>('chat');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -179,19 +179,6 @@ const App: React.FC = () => {
 
   const handlePersonalityChange = (newP: Personality) => {
     setPersonality(newP);
-    const ack = lang === 'EN' ? `Personality updated to ${newP}.` : `تم تغيير الشخصية إلى ${newP}.`;
-    const systemMessage: Message = {
-      id: uuidv4(),
-      role: Role.ASSISTANT,
-      content: ack,
-      timestamp: new Date(),
-    };
-    setSessions(prev => prev.map(s => {
-      if (s.id === currentSessionId) {
-        return { ...s, messages: [...s.messages, systemMessage] };
-      }
-      return s;
-    }));
   };
 
   return (
@@ -264,9 +251,7 @@ const App: React.FC = () => {
                   </div>
                   <div className="flex flex-wrap gap-1">
                     <span className="text-[9px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded-md font-bold uppercase">{personality}</span>
-                    {isDeepSearch && <span className="text-[9px] px-1.5 py-0.5 bg-emerald-100 text-emerald-600 rounded-md font-bold uppercase">Deep</span>}
-                    {isStudyMode && <span className="text-[9px] px-1.5 py-0.5 bg-blue-100 text-blue-600 rounded-md font-bold uppercase">Study</span>}
-                    {isCodingMode && <span className="text-[9px] px-1.5 py-0.5 bg-purple-100 text-purple-600 rounded-md font-bold uppercase">Code</span>}
+                    {isDeepSearch && <span className="text-[9px] px-1.5 py-0.5 bg-emerald-100 text-emerald-600 rounded-md font-bold uppercase">Deep Search</span>}
                   </div>
                 </div>
               </div>
@@ -274,7 +259,7 @@ const App: React.FC = () => {
               <div className="flex flex-wrap items-center justify-center gap-3">
                 <div className="flex items-center bg-white/80 rounded-2xl border-2 border-emerald-100 px-3 py-1.5 shadow-sm">
                   <span className="text-[10px] font-black text-emerald-600 mr-1 whitespace-nowrap">
-                    {lang === 'EN' ? 'Type:' : 'النوع:'}
+                    {lang === 'EN' ? 'Mode:' : 'الوضع:'}
                   </span>
                   <select 
                     value={personality}
@@ -302,22 +287,7 @@ const App: React.FC = () => {
                   >
                     <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${isDeepSearch ? 'translate-x-5' : 'translate-x-0'}`} />
                   </button>
-                  <span className={`text-[10px] font-black ml-2 ${isDeepSearch ? 'text-emerald-600' : 'text-gray-400'}`}>Deep</span>
-                </div>
-                
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => setIsCodingMode(!isCodingMode)}
-                    className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all border-2 focus:outline-none ${isCodingMode ? 'bg-purple-500 text-white border-purple-600' : 'bg-white text-purple-500 border-purple-100 shadow-sm'}`}
-                  >
-                    {isCodingMode ? (lang === 'EN' ? 'Code: ON' : 'برمجة: مفعل') : (lang === 'EN' ? 'Code: OFF' : 'برمجة: معطل')}
-                  </button>
-                  <button 
-                    onClick={() => setIsStudyMode(!isStudyMode)}
-                    className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all border-2 focus:outline-none ${isStudyMode ? 'bg-blue-500 text-white border-blue-600' : 'bg-white text-blue-500 border-blue-100 shadow-sm'}`}
-                  >
-                    {isStudyMode ? (lang === 'EN' ? 'Study: ON' : 'دراسة: مفعل') : (lang === 'EN' ? 'Study: OFF' : 'دراسة: معطل')}
-                  </button>
+                  <span className={`text-[10px] font-black ml-2 ${isDeepSearch ? 'text-emerald-600' : 'text-gray-400'}`}>Deep Search</span>
                 </div>
               </div>
             </header>
@@ -334,7 +304,7 @@ const App: React.FC = () => {
                      (lang === 'EN' ? "Once upon a time..." : "كان يا مكان...")}
                   </h2>
                   <p className="text-emerald-800/60 font-bold mb-8">
-                    {lang === 'EN' ? `Active Personality: ${personality}` : `الشخصية المفعلة: ${personality}`}
+                    {lang === 'EN' ? `Helpfulat is ready in ${personality} mode.` : `هيلبفولات جاهز في وضع ${personality}.`}
                   </p>
                 </div>
               ) : (
@@ -353,7 +323,7 @@ const App: React.FC = () => {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                  placeholder={lang === 'EN' ? `Message Helpfulat (${personality})...` : `أرسل رسالة (${personality})...`}
+                  placeholder={lang === 'EN' ? `Ask Helpfulat anything...` : `اسأل هيلبفولات أي شيء...`}
                   rows={1}
                   className="flex-1 bg-transparent border-none focus:ring-0 text-gray-800 font-bold text-lg py-2 resize-none focus:outline-none"
                 />
