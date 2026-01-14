@@ -1,7 +1,5 @@
 
 import { GoogleGenAI } from "@google/genai";
-// Fixed import path to use the existing types.js as types.ts was replaced
-import { Role } from "../types.js";
 
 // Use recommended model for complex tasks
 const MODEL_NAME = 'gemini-3-pro-preview';
@@ -23,8 +21,9 @@ export async function sendMessage(
   // Correct initialization using named parameter and process.env.API_KEY
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+  // Using string literals for roles to avoid dependency on the problematic types.js/ts module
   const contents = history.map(msg => ({
-    role: msg.role === Role.USER ? 'user' : 'model' as const,
+    role: (msg.role === 'assistant' || msg.role === 'model') ? 'model' as const : 'user' as const,
     parts: [{ text: msg.content }]
   }));
 

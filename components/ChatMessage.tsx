@@ -1,14 +1,21 @@
 
 import React from 'react';
-// Fixed import path to use the existing types.js file
-import { Message, Role } from '../types.js';
+
+// Define local interfaces to avoid module resolution errors for types.js
+interface Message {
+  role: 'user' | 'assistant' | 'model';
+  content: string;
+  isSearching?: boolean;
+  sources?: any[];
+}
 
 interface ChatMessageProps {
   message: Message;
 }
 
 const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
-  const isAssistant = message.role === Role.ASSISTANT;
+  // Check role using string literal
+  const isAssistant = message.role === 'assistant' || message.role === 'model';
   // Basic check for Arabic content to apply RTL inside message
   const isArabic = /[\u0600-\u06FF]/.test(message.content);
 
