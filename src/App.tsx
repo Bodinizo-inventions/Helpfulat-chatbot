@@ -3,6 +3,12 @@ import { v4 as uuidv4 } from 'uuid';
 import { ChatMessage } from './components/ChatMessage';
 import { Arcade } from './components/Arcade';
 import { generateResponse } from './services/geminiService';
+import { 
+  getUserProfile, 
+  updateUserName, 
+  saveSessionSummary, 
+  getMemoryStats 
+} from './services/memoryService';
 import { Role, log } from './utils';
 
 interface Message {
@@ -43,16 +49,28 @@ export const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isDeepSearch, setIsDeepSearch] = useState(true);
   const [lang, setLang] = useState('EN');
-  const [activeTab, setActiveTab] = useState<'chat' | 'study' | 'arcade'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'study' | 'arcade' | 'memory'>('chat');
   const [personality, setPersonality] = useState<PersonalityType>('tutor');
   const [codeMode, setCodeMode] = useState(false);
   const [studyMode, setStudyMode] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
+  const [userName, setUserName] = useState('');
+  const [newUserName, setNewUserName] = useState('');
+  const [showEditName, setShowEditName] = useState(false);
+  const [memoryStats, setMemoryStats] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const isRTL = lang === 'AR';
   const currentSession = sessions.find((s) => s.id === currentSessionId);
   const personalityInfo = PERSONALITIES[personality];
+
+  // Initialize user profile on mount
+  useEffect(() => {
+    const profile = getUserProfile();
+    setUserName(profile.name);
+    setNewUserName(profile.name);
+    setMemoryStats(getMemoryStats());
+  }, []);
 
   const createNewSession = useCallback(() => {
     const id = uuidv4();
@@ -71,6 +89,21 @@ export const App: React.FC = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [currentSession?.messages]);
+
+  // Save session summary when switching sessions
+  useEffect(() => {
+    if (currentSession && currentSession.messages.length > 0) {
+      const unsubscribe = () => {
+        saveSessionSummary(
+          currentSession.id,
+          currentSession.messages[0]?.content?.substring(0, 50) || 'Chat',
+          personality,
+          currentSession.messages
+        );
+      };
+      return unsubscribe;
+    }
+  }, [currentSessionId, personality]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,7 +140,9 @@ export const App: React.FC = () => {
         isDeepSearch,
         personality,
         codeMode,
-        studyMode
+        studyMode,
+        userName,
+        [] // user interests can be expanded
       );
 
       setSessions((prev) =>
@@ -202,7 +237,17 @@ export const App: React.FC = () => {
         </div>
 
         {/* Arcade Button */}
-        <div className="p-4 border-t-4 border-white/50">
+        <div className="p-4 border-t-4 border-white/50 space-y-2">
+          <button
+            onClick={() => setActiveTab('memory')}
+            className={`w-full py-3 rounded-xl font-bold transition-all ${
+              activeTab === 'memory'
+                ? 'bg-orange-500 text-white shadow-lg'
+                : 'bg-white/60 text-orange-600 hover:bg-orange-50'
+            }`}
+          >
+            💾 Memory
+          </button>
           <button
             onClick={() => setActiveTab('arcade')}
             className="w-full py-3 rounded-xl font-bold bg-purple-500 text-white"
@@ -352,6 +397,113 @@ export const App: React.FC = () => {
                   </p>
                 </div>
               )}
+            </div>
+          ) : activeTab === 'memory' ? (
+            <div className="p-12">
+              <div className="max-w-3xl mx-auto">
+                <h2 className="text-4xl font-black text-center text-gray-800 mb-8">
+                  💾 {lang === 'EN' ? 'Memory & Profile' : 'الذاكرة والملف الشخصي'}
+                </h2>
+
+                {/* User Profile Section */}
+                <div className="bg-white/80 backdrop-blur rounded-3xl p-8 mb-8 shadow-lg">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h3 className="text-2xl font-black text-gray-900">👤 {lang === 'EN' ? 'User Profile' : 'الملف الشخصي'}</h3>
+                      <p className="text-gray-600 font-bold">
+                        {lang === 'EN' ? `Name: ${userName}` : `الاسم: ${userName}`}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setShowEditName(!showEditName)}
+                      className="px-4 py-2 bg-emerald-500 text-white font-bold rounded-lg hover:bg-emerald-600"
+                    >
+                      ✏️ {lang === 'EN' ? 'Edit' : 'تحرير'}
+                    </button>
+                  </div>
+
+                  {showEditName && (
+                    <div className="flex gap-2 mt-4">
+                      <input
+                        type="text"
+                        value={newUserName}
+                        onChange={(e) => setNewUserName(e.target.value)}
+                        placeholder={lang === 'EN' ? 'Enter your name' : 'أدخل اسمك'}
+                        className="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg font-bold"
+                      />
+                      <button
+                        onClick={() => {
+                          updateUserName(newUserName);
+                          setUserName(newUserName);
+                          setShowEditName(false);
+                          setMemoryStats(getMemoryStats());
+                        }}
+                        className="px-6 py-2 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600"
+                      >
+                        ✓
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Memory Stats */}
+                {memoryStats && (
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-3xl p-8 border-2 border-blue-200">
+                    <h3 className="text-2xl font-black text-gray-900 mb-6">
+                      📊 {lang === 'EN' ? 'Conversation History' : 'سجل المحادثات'}
+                    </h3>
+                    <div className="grid grid-cols-2 gap-6 mb-6">
+                      <div className="bg-white/80 rounded-xl p-4">
+                        <p className="text-gray-600 text-sm font-bold">{lang === 'EN' ? 'Total Sessions' : 'إجمالي الجلسات'}</p>
+                        <p className="text-3xl font-black text-blue-600">{memoryStats.totalSessions}</p>
+                      </div>
+                      <div className="bg-white/80 rounded-xl p-4">
+                        <p className="text-gray-600 text-sm font-bold">{lang === 'EN' ? 'Topics Discussed' : 'المواضيع النقاشية'}</p>
+                        <p className="text-3xl font-black text-indigo-600">{memoryStats.interests.length}</p>
+                      </div>
+                    </div>
+
+                    {memoryStats.lastSession && (
+                      <div className="bg-white/80 rounded-xl p-4 mt-4">
+                        <p className="text-sm text-gray-600 font-bold mb-2">
+                          {lang === 'EN' ? 'Last Conversation' : 'آخر محادثة'}:
+                        </p>
+                        <p className="text-gray-800 font-bold">
+                          {memoryStats.lastSession.title}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-2">
+                          {new Date(memoryStats.lastSession.date).toLocaleDateString()}
+                        </p>
+                      </div>
+                    )}
+
+                    {memoryStats.interests.length > 0 && (
+                      <div className="mt-6">
+                        <p className="text-sm text-gray-600 font-bold mb-3">{lang === 'EN' ? 'Your Interests' : 'اهتماماتك'}:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {memoryStats.interests.map((interest: string) => (
+                            <span
+                              key={interest}
+                              className="px-3 py-1 bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-sm font-bold rounded-full"
+                            >
+                              {interest}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Info */}
+                <div className="mt-8 p-6 bg-amber-50 border-2 border-amber-200 rounded-2xl">
+                  <p className="text-sm text-amber-900 font-bold leading-relaxed">
+                    {lang === 'EN'
+                      ? '🧠 The bot now remembers your name and past conversations. It will use this information to provide more personalized responses and refer back to previous topics when relevant.'
+                      : '🧠 يتذكر البوت الآن اسمك والمحادثات السابقة. سوف يستخدم هذه المعلومات لتقديم ردود أكثر شخصية والإشارة إلى المواضيع السابقة عند الضرورة.'}
+                  </p>
+                </div>
+              </div>
             </div>
           ) : (
             <Arcade />

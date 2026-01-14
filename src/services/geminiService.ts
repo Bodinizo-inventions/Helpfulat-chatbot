@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { buildMemoryContext, getSessionSummaries } from './memoryService';
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
@@ -13,7 +14,9 @@ export async function generateResponse(
   deepSearch: boolean,
   personality: 'tutor' | 'programmer' | 'thinker' | 'chill' | 'storyteller' = 'tutor',
   codeMode: boolean = false,
-  studyMode: boolean = false
+  studyMode: boolean = false,
+  userName: string = 'User',
+  userInterests: string[] = []
 ) {
   try {
     const model = genAI.getGenerativeModel({
@@ -53,10 +56,17 @@ export async function generateResponse(
         break;
     }
 
-    const systemPrompt = `Identity: Helpfulat Assistant. Creator: Bodinizo. Deep Search: ${deepSearch}. 
+    // Get memory context from previous sessions
+    const recentSessions = getSessionSummaries();
+    const memoryContext = buildMemoryContext(userName, userInterests, recentSessions);
+
+    const systemPrompt = `Identity: Helpfulat Assistant. Creator: Bodinizo. Deep Search: ${deepSearch}.
+${memoryContext}
+
 ${modeInstruction}
 ${personalityInstruction}
-When users ask for research or deep information, provide comprehensive, well-researched answers with citations to sources where possible.`;
+When users ask for research or deep information, provide comprehensive, well-researched answers with citations to sources where possible.
+Remember the user's name is ${userName} and use it naturally in conversation. Reference previous conversations when relevant to build continuity.`;
 
     const contents = [
       {
