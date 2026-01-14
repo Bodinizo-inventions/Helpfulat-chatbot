@@ -1,11 +1,12 @@
-
 {
   "name": "helpfulat",
   "version": "1.0.0",
   "description": "Helpfulat AI Assistant",
   "type": "module",
+  "private": true,
   "scripts": {
-    "start": "serve ."
+    "start": "serve .",
+    "build": "echo 'Skipping build: Static ESM deployment'"
   },
   "dependencies": {
     "serve": "^14.2.4"
