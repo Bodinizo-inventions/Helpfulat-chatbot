@@ -20,7 +20,7 @@ export async function generateResponse(
 ) {
   try {
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash-lite',
+      model: 'gemini-1.5-flash',
     });
 
     let modeInstruction = '';
@@ -111,8 +111,20 @@ Remember the user's name is ${userName} and use it naturally in conversation. Re
       text: result,
       sources: sources,
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error generating response:', error);
+    
+    // Check for quota exceeded error (429)
+    if (error?.message?.includes('429') || error?.message?.includes('quota') || error?.message?.includes('exceeded')) {
+      throw new Error(
+        '⚠️ API Quota Exceeded\n\nYou\'ve reached the daily limit for the Gemini API free tier (20 requests/day).\n\n' +
+        'Options:\n' +
+        '1. Wait a few hours for the quota to reset\n' +
+        '2. Set up a paid billing account at https://aistudio.google.com for unlimited requests\n' +
+        '3. Come back tomorrow when the quota resets'
+      );
+    }
+    
     throw error;
   }
 }

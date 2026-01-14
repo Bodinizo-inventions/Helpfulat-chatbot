@@ -167,12 +167,26 @@ export const App: React.FC = () => {
       );
     } catch (err) {
       log('ERROR', (err as Error).message);
+      const errorMsg = (err as Error).message;
+      
       setSessions((prev) =>
-        prev.map((s) =>
-          s.id === currentSessionId
-            ? { ...s, messages: s.messages.filter((m) => m.id !== 'thinking') }
-            : s
-        )
+        prev.map((s) => {
+          if (s.id === currentSessionId) {
+            return {
+              ...s,
+              messages: [
+                ...s.messages.filter((m) => m.id !== 'thinking'),
+                {
+                  id: uuidv4(),
+                  role: Role.ASSISTANT,
+                  content: errorMsg,
+                  sources: [],
+                },
+              ],
+            };
+          }
+          return s;
+        })
       );
     } finally {
       setIsLoading(false);
