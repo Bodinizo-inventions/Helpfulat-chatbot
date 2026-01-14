@@ -19,7 +19,7 @@ export async function generateResponse(
   userInterests: string[] = []
 ) {
   // Try with primary model first, fallback to secondary if quota exceeded
-  const models = ['gemini-2.5-flash-lite', 'gemini-2.0-flash-exp'];
+  const models = ['gemini-2.5-pro', 'gemini-1.5-pro'];
   let lastError: any = null;
   
   for (const modelName of models) {
