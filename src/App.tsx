@@ -19,6 +19,9 @@ interface Session {
   messages: Message[];
 }
 
+type Mode = 'normal' | 'study' | 'code';
+type Personality = 'chill' | 'thinker';
+
 export const App: React.FC = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
@@ -27,6 +30,8 @@ export const App: React.FC = () => {
   const [isDeepSearch, setIsDeepSearch] = useState(true);
   const [lang, setLang] = useState('EN');
   const [activeTab, setActiveTab] = useState<'chat' | 'arcade'>('chat');
+  const [mode, setMode] = useState<Mode>('normal');
+  const [personality, setPersonality] = useState<Personality>('chill');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const isRTL = lang === 'AR';
@@ -82,7 +87,9 @@ export const App: React.FC = () => {
 
       const response = await generateResponse(
         [...history, { role: Role.USER, content: userMsg.content }],
-        isDeepSearch
+        isDeepSearch,
+        mode,
+        personality
       );
 
       setSessions((prev) =>
@@ -161,23 +168,74 @@ export const App: React.FC = () => {
       </aside>
 
       <main className="flex-1 flex flex-col bg-white/30 backdrop-blur-sm relative">
-        <header className="h-20 border-b-4 border-white flex items-center justify-between px-8 bg-white/20">
-          <div className="lg:hidden text-2xl font-black text-emerald-900">Helpfulat</div>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setIsDeepSearch(!isDeepSearch)}
-              className={`px-4 py-1.5 rounded-xl text-[10px] font-black transition-all ${
-                isDeepSearch ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-500'
-              }`}
-            >
-              DEEP SEARCH
-            </button>
-            <button
-              onClick={() => setLang(lang === 'EN' ? 'AR' : 'EN')}
-              className="w-10 h-10 rounded-xl bg-white border-2 border-white flex items-center justify-center font-black text-xs"
-            >
-              {lang === 'EN' ? 'AR' : 'EN'}
-            </button>
+        <header className="border-b-4 border-white flex flex-col gap-2 px-8 py-3 bg-white/20">
+          <div className="flex items-center justify-between">
+            <div className="lg:hidden text-2xl font-black text-emerald-900">Helpfulat</div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsDeepSearch(!isDeepSearch)}
+                className={`px-3 py-1 rounded-lg text-[10px] font-black transition-all ${
+                  isDeepSearch ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-500'
+                }`}
+              >
+                DEEP SEARCH
+              </button>
+              <button
+                onClick={() => setLang(lang === 'EN' ? 'AR' : 'EN')}
+                className="w-9 h-9 rounded-lg bg-white border-2 border-white flex items-center justify-center font-black text-xs"
+              >
+                {lang === 'EN' ? 'AR' : 'EN'}
+              </button>
+            </div>
+          </div>
+          
+          {/* Mode and Personality Controls */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex gap-1">
+              <button
+                onClick={() => setMode('normal')}
+                className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${
+                  mode === 'normal' ? 'bg-blue-500 text-white' : 'bg-white/40 text-gray-700 hover:bg-white/60'
+                }`}
+              >
+                Normal
+              </button>
+              <button
+                onClick={() => setMode('study')}
+                className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${
+                  mode === 'study' ? 'bg-orange-500 text-white' : 'bg-white/40 text-gray-700 hover:bg-white/60'
+                }`}
+              >
+                📚 Study
+              </button>
+              <button
+                onClick={() => setMode('code')}
+                className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${
+                  mode === 'code' ? 'bg-purple-500 text-white' : 'bg-white/40 text-gray-700 hover:bg-white/60'
+                }`}
+              >
+                💻 Code
+              </button>
+            </div>
+            
+            <div className="flex gap-1">
+              <button
+                onClick={() => setPersonality('chill')}
+                className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${
+                  personality === 'chill' ? 'bg-green-500 text-white' : 'bg-white/40 text-gray-700 hover:bg-white/60'
+                }`}
+              >
+                😎 Chill
+              </button>
+              <button
+                onClick={() => setPersonality('thinker')}
+                className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${
+                  personality === 'thinker' ? 'bg-indigo-500 text-white' : 'bg-white/40 text-gray-700 hover:bg-white/60'
+                }`}
+              >
+                🧠 Thinker
+              </button>
+            </div>
           </div>
         </header>
 
